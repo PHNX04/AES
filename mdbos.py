@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 from galois import GF
 
@@ -20,9 +22,7 @@ def aes(x, k):
     print(mix_result)
     print(hex(mix_result[3][3]))
 
-    result = keyAddition(mix_result, k)
-    print(result)
-    print(hex(result[3][3]))
+    return [hex(x) for y in mix_result for x in y]
 
 def keyAddition(x, k0):
     return [[x[i][j] ^ k0[i][j] for j in range(len(x[i]))] for i in range(len(x))]
@@ -65,15 +65,24 @@ def mixColumns(state):
         mix_single_columns(state[i])
     return state
 
+def galois_shit(a):
+    result = a << 1
+
+    if a & 0x80:
+        result ^= 0x1B
+
+    return int(result) % 256
+
 def mix_single_columns(s):
-    xtime = lambda a: (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
     t = s[0] ^ s[1] ^ s[2] ^ s[3]
     u = s[0]
-    s[0] ^= t ^ xtime(s[0] ^ s[1])
-    s[1] ^= t ^ xtime(s[1] ^ s[2])
-    s[2] ^= t ^ xtime(s[2] ^ s[3])
-    s[3] ^= t ^ xtime(s[3] ^ u)
+
+    s[0] = int(s[0] ^ t ^ galois_shit(s[0] ^ s[1]))
+    s[1] = int(s[1] ^ t ^ galois_shit(s[1] ^ s[2]))
+    s[2] = int(s[2] ^ t ^ galois_shit(s[2] ^ s[3]))
+    s[3] = int(s[3] ^ t ^ galois_shit(s[3] ^ u))
 
 x = [[0x86, 0x37, 0x27, 0x7d], [0xa2, 0x7d, 0xb0, 0x3c], [0x24, 0x07, 0xbf, 0x39], [ 0xdb, 0x31, 0x45, 0x35]]
 k = [[0x78,0x3e,0x5f,0x41],[0x48,0xda,0x2b,0xbe],[0xd0,0x27,0x44,0x68],[0xef,0x3d,0x94,0xad]]
-aes(x,k)
+output = aes(x,k)
+print(output)
