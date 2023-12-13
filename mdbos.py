@@ -1,9 +1,7 @@
-import copy
-
 import numpy as np
 from galois import GF
 
-GF256 = GF(2**8)
+GF256 = GF(2**8, irreducible_poly=0x11B)
 
 def aes(x, k):
     add_result = keyAddition(x, k)  # 98 passt
@@ -61,26 +59,19 @@ def shiftRows(sub_result):
     return s
 
 def mixColumns(state):
-    for i in range(4):
-        mix_single_columns(state[i])
-    return state
+    mix_matrix = [[0x02, 0x03, 0x01, 0x01],
+                  [0x01, 0x02, 0x03, 0x01],
+                  [0x01, 0x01, 0x02, 0x03],
+                  [0x03, 0x01, 0x01, 0x02]]
 
-def galois_shit(a):
-    result = a << 1
+    A = GF256(mix_matrix)
 
-    if a & 0x80:
-        result ^= 0x1B
+    results = [A @ GF256(s) for s in state]
 
-    return int(result) % 256
+    result_GF = np.concatenate(results, axis=0)
 
-def mix_single_columns(s):
-    t = s[0] ^ s[1] ^ s[2] ^ s[3]
-    u = s[0]
-
-    s[0] = int(s[0] ^ t ^ galois_shit(s[0] ^ s[1]))
-    s[1] = int(s[1] ^ t ^ galois_shit(s[1] ^ s[2]))
-    s[2] = int(s[2] ^ t ^ galois_shit(s[2] ^ s[3]))
-    s[3] = int(s[3] ^ t ^ galois_shit(s[3] ^ u))
+    newMatrix = result_GF.reshape(-1, 4).tolist()
+    return newMatrix
 
 x = [[0x86, 0x37, 0x27, 0x7d], [0xa2, 0x7d, 0xb0, 0x3c], [0x24, 0x07, 0xbf, 0x39], [ 0xdb, 0x31, 0x45, 0x35]]
 k = [[0x78,0x3e,0x5f,0x41],[0x48,0xda,0x2b,0xbe],[0xd0,0x27,0x44,0x68],[0xef,0x3d,0x94,0xad]]
