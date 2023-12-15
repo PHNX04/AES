@@ -3,31 +3,7 @@ from galois import GF
 
 GF256 = GF(2**8, irreducible_poly=0x11B)
 
-def aes(x, k):
-    add_result = keyAddition(x, k)  # 98 passt
-    print(add_result)
-    print(hex(add_result[3][3]))
-
-    sub_result = [list(x) for x in byteSubLayer(add_result)]
-    print(sub_result)
-    print(hex(sub_result[3][3]))
-
-    shift_result = [list(x) for x in shiftRows(sub_result)]
-    print(shift_result)
-    print(hex(shift_result[3][3]))
-
-    mix_result = mixColumns(shift_result)
-    print(mix_result)
-    print(hex(mix_result[3][3]))
-
-    return [hex(x) for y in mix_result for x in y]
-
-def keyAddition(x, k0):
-    return [[x[i][j] ^ k0[i][j] for j in range(len(x[i]))] for i in range(len(x))]
-
-
-def byteSubLayer(add_result):
-    SBox = np.array([
+SBox = np.array([
         0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
         0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0,
         0xB7, 0xFD, 0x93, 0x26, 0x36, 0x3F, 0xF7, 0xCC, 0x34, 0xA5, 0xE5, 0xF1, 0x71, 0xD8, 0x31, 0x15,
@@ -45,6 +21,126 @@ def byteSubLayer(add_result):
         0xE1, 0xF8, 0x98, 0x11, 0x69, 0xD9, 0x8E, 0x94, 0x9B, 0x1E, 0x87, 0xE9, 0xCE, 0x55, 0x28, 0xDF,
         0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16], dtype=int)
 
+def nextKeyGen(k, i):
+    w = k
+    new_w = []
+    round_constants = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36]
+
+    round_const = round_constants[i]
+
+    new_w.append(bitwise(w[0], g(w[3], round_const)))
+    new_w.append(bitwise(new_w[0], w[1]))
+    new_w.append(bitwise(new_w[1], w[2]))
+    new_w.append(bitwise(new_w[2], w[3]))
+
+    w = new_w
+
+    return w
+
+def keyGen(k):
+    w = k
+    new_w = []
+    round_constants = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36]
+    for i in range(10):
+        round_const = round_constants[i]
+
+        new_w.append(bitwise(w[0], g(w[3], round_const)))
+        new_w.append(bitwise(new_w[0], w[1]))
+        new_w.append(bitwise(new_w[1], w[2]))
+        new_w.append(bitwise(new_w[2], w[3]))
+
+        w = new_w
+        new_w = []
+
+        hex_w = [hex(y) for x in w for y in x]
+
+        print(i, hex_w)
+
+    return w
+
+def bitwise(list1, list2):
+    newlist = []
+    for i in range(len(list1)):
+        newlist.append(list1[i] ^ list2[i])
+    return newlist
+
+def g(z, round_constant):
+    # Vertauschen der Positionen
+    z_switched = [z[1], z[2], z[3], z[0]]
+
+    # Substitution durch S-Boxen
+    word = [SBox[b] for b in z_switched]
+
+    word[0] ^= round_constant
+
+    return word
+
+#Aufgabe 1b
+x = [0x78, 0x48, 0xd0, 0xef]
+a1b = g(x, 1)
+print([hex(x) for x in a1b])
+print(hex(a1b[0]))
+
+#Aufgabe 1c
+k = [[0x3e,0x5f,0x41,0x86],[0xda,0x2b,0xbe,0xa2],[0x27,0x44,0x68,0x24],[0x3d,0x94,0xad,0xdb]]
+a1c = keyGen(k)
+print(hex(a1c[3][3]))
+
+#Aufgabe 1d
+k = [[0x1b, 0xbf, 0x16, 0xf2], [0x24, 0xe3, 0x40, 0x5c], [0x49, 0xad, 0x5f, 0x62], [0x65, 0x0a, 0xcd, 0x83]]
+a1d = nextKeyGen(k, 4)
+print([hex(x) for y in a1d for x in y])
+print("Aufgabe 1 Ende")
+
+#Aufgabe 2
+def aes(x, k):
+    #Aufgabe 2a
+    #k0
+    k0 = nextKeyGen(k, 0)
+    print(k0)
+    print([hex(x) for y in k0 for x in y])
+    print(hex(k0[3][3]))
+    #k1
+    k1 = nextKeyGen(k, 1)
+    print(k1)
+    print([hex(x) for y in k1 for x in y])
+    print(hex(k1[3][3]))
+
+    #Aufgabe 2b
+    add_result = keyAddition(x, k)  # 98 passt
+    print(add_result)
+    print(hex(add_result[3][3]))
+
+    #Aufgabe 2c
+    sub_result = [list(x) for x in byteSubLayer(add_result)]
+    print(sub_result)
+    print(hex(sub_result[3][3]))
+
+    #Aufgabe 2d
+    shift_result = [list(x) for x in shiftRows(sub_result)]
+    print(shift_result)
+    print(hex(shift_result[3][3]))
+
+    #Aufgabe 2e
+    mix_result = mixColumns(shift_result)
+    print(mix_result)
+    print(hex(mix_result[3][3]))
+
+    #Aufgabe 2f
+    k1 = nextKeyGen(k, 1)
+    solution = keyAddition(mix_result, k1)
+    print(solution)
+    print(hex(solution[3][3]))
+
+    return solution
+
+def keyAddition(x, k0):
+    # XOR der Matrizen
+    return [[x[i][j] ^ k0[i][j] for j in range(len(x[i]))] for i in range(len(x))]
+
+
+def byteSubLayer(add_result):
+    # Substitution durch S-Boxen
     word = [SBox[b] for b in add_result]
     return word
 
@@ -52,6 +148,7 @@ def byteSubLayer(add_result):
 def shiftRows(sub_result):
     s = sub_result
 
+    # Manuell vertauschen der Zeilen
     s[0][1], s[1][1], s[2][1], s[3][1] = s[1][1], s[2][1], s[3][1], s[0][1]
     s[0][2], s[1][2], s[2][2], s[3][2] = s[2][2], s[3][2], s[0][2], s[1][2]
     s[0][3], s[1][3], s[2][3], s[3][3] = s[3][3], s[0][3], s[1][3], s[2][3]
@@ -59,21 +156,24 @@ def shiftRows(sub_result):
     return s
 
 def mixColumns(state):
+    # MixColumns Matrix
     mix_matrix = [[0x02, 0x03, 0x01, 0x01],
                   [0x01, 0x02, 0x03, 0x01],
                   [0x01, 0x01, 0x02, 0x03],
                   [0x03, 0x01, 0x01, 0x02]]
 
+    # Erstellen einer Galois Field Matrix
     matrix = GF256(mix_matrix)
 
+    # Multiplikation der Matrizen
     results = [matrix @ GF256(s) for s in state]
 
+    # Konvertierung der Ergebnisse in eine Liste
     result_GF = np.concatenate(results, axis=0)
-
     newMatrix = result_GF.reshape(-1, 4).tolist()
     return newMatrix
 
-x = [[0x86, 0x37, 0x27, 0x7d], [0xa2, 0x7d, 0xb0, 0x3c], [0x24, 0x07, 0xbf, 0x39], [ 0xdb, 0x31, 0x45, 0x35]]
-k = [[0x78,0x3e,0x5f,0x41],[0x48,0xda,0x2b,0xbe],[0xd0,0x27,0x44,0x68],[0xef,0x3d,0x94,0xad]]
+x = [[0x86, 0x37, 0x27, 0x7d], [0xa2, 0x7d, 0xb0, 0x3c], [0x24, 0x07, 0xbf, 0x39], [0xdb, 0x31, 0x45, 0x35]]
+k = [[0x78, 0x3e, 0x5f, 0x41], [0x48, 0xda, 0x2b, 0xbe], [0xd0, 0x27, 0x44, 0x68], [0xef, 0x3d, 0x94, 0xad]]
 output = aes(x,k)
 print(output)
