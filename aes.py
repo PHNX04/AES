@@ -64,9 +64,9 @@ def mixColumns(state):
                   [0x01, 0x01, 0x02, 0x03],
                   [0x03, 0x01, 0x01, 0x02]]
 
-    A = GF256(mix_matrix)
+    matrix = GF256(mix_matrix)
 
-    results = [A @ GF256(s) for s in state]
+    results = [matrix @ GF256(s) for s in state]
 
     result_GF = np.concatenate(results, axis=0)
 
